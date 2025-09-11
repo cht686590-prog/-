@@ -16,13 +16,13 @@
 
         // 全域變數，由 Canvas 環境提供
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         // 初始化 Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        let app = null;
+        let db = null;
+        let auth = null;
         
         let userId = null;
         let isAdmin = false;
@@ -478,10 +478,28 @@
 
         // 頁面加載後初始化
         window.onload = async () => {
+            if (!firebaseConfig) {
+                // 如果沒有 Firebase 設定，顯示錯誤訊息並禁用功能
+                document.body.innerHTML = `
+                    <div class="fixed inset-0 bg-gray-100 flex items-center justify-center p-4 text-center">
+                        <div class="bg-red-100 p-8 rounded-xl shadow-lg border-2 border-red-400">
+                            <h1 class="text-3xl font-bold text-red-600 mb-4">系統無法運作</h1>
+                            <p class="text-lg text-red-500 mb-6">這個應用程式需要一個特殊的部署環境來連接資料庫。<br>請將程式碼部署到 Google 的服務 (例如 **Firebase Hosting**) 以正常使用。</p>
+                            <p class="text-gray-500 text-sm">錯誤碼: F-01</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
             setLoading(true, '系統初始化中...');
-            
+
             // Firebase 認證
             try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
